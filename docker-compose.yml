@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  spark:
+    build: ./spark
+    volumes:
+      - ./spark/scripts:/app/scripts
+      - ./datalake:/datalake
+    command: tail -f /dev/null
+
+  airflow:
+    build: ./airflow
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__FERNET_KEY=cryptographickeyhere
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////usr/local/airflow/airflow.db
+    volumes:
+      - ./dags:/usr/local/airflow/dags
+    ports:
+      - "8080:8080"
+    command: >
+      bash -c "
+        airflow db init &&
+        airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin &&
+        airflow webserver &
+        airflow scheduler
+      "
