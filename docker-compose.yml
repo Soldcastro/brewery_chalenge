@@ -4,7 +4,7 @@ services:
   spark:
     build: ./spark
     volumes:
-      - ./spark/scripts:/app/scripts
+      - ./scripts:/app/scripts
       - ./datalake:/datalake
     command: tail -f /dev/null
 
