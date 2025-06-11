@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  spark:
+    build: ./spark
+    container_name: spark
+    volumes:
+      - ./spark/scripts:/app/scripts:rw
+      - ./datalake:/datalake:rw
+    working_dir: /app/scripts
+    command: tail -f /dev/null
+
+  postgres:
+    image: postgres:14.3
+    container_name: postgres
+    restart: "always"
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    ports:
+      - "5432:5432"
+
+  airflow:
+    build: ./airflow
+    container_name: airflow_webserver
+    restart: "always"
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__FERNET_KEY=KjBYeXnXRZ36MjRFOqfQkO8peL4h4ckuF8w_AiF0IP4= 
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+    volumes:
+      - ./dags:/opt/airflow/dags:rw
+    ports:
+      - "8080:8080"
+    command: >
+      bash -c "
+        airflow db migrate &&
+        airflow api-server
+      "
+
+  scheduler:
+    build: ./airflow
+    container_name: airflow_scheduler
+    restart: "always"
+    depends_on:
+      - postgres
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__FERNET_KEY=KjBYeXnXRZ36MjRFOqfQkO8peL4h4ckuF8w_AiF0IP4=  # Same Fernet key as in airflow service
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+    volumes:
+      - ./dags:/opt/airflow/dags:rw
+    command: >
+      bash -c "
+        airflow db migrate &&
+        airflow scheduler
+      "
