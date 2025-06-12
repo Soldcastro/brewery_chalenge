@@ -18,17 +18,19 @@ x-airflow-common:
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
-    AIRFLOW__CORE__LOAD_EXAMPLES: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__CORE__TEST_CONNECTION: 'Enabled'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth,airflow.api.auth.backend.session'
     AIRFLOW__SCHEDULER__ENABLE_HEALTH_CHECK: 'true'
     _PIP_ADDITIONAL_REUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
   volumes:
     - spark-events:/opt/spark/events
-    - ${AIRFLOW_PROJ_DIR:-.}airflow/dags:/opt/airflow/dags
-    - ${AIRFLOW_PROJ_DIR:-.}airflow/logs:/opt/airflow/logs
-    - ${AIRFLOW_PROJ_DIR:-.}airflow/config:/opt/airflow/config
-    - ${AIRFLOW_PROJ_DIR:-.}airflow/plugins:/opt/airflow/plugins
+    - ./airflow/dags:/opt/airflow/dags
+    - ./airflow/logs:/opt/airflow/logs
+    - ./airflow/config:/opt/airflow/config
+    - ./airflow/plugins:/opt/airflow/plugins
+    - ./spark/scripts:/app/scripts
+    - ./datalake:/datalake
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -43,7 +45,7 @@ networks:
 services:
   
   spark-master:
-    image: my_first_spark
+    image: spark_master
     build: ./spark
     container_name: spark-master
     networks:
@@ -59,7 +61,7 @@ services:
       - ./datalake:/datalake
 
   spark-worker:
-    image: my_first_spark
+    image: spark_worker
     build: ./spark
     container_name: spark-worker1
     networks:
@@ -72,7 +74,7 @@ services:
       - ./datalake:/datalake  
     
   spark-history-server:
-    image: my_first_spark
+    image: spark_history_server
     build: ./spark
     container_name: spark-history-server
     networks:
@@ -230,10 +232,10 @@ services:
             echo "   https://airflow.apache.org/docs/apache-airflow/stable/howto/docker-compose/index.html#before-you-begin"
             echo
           fi
-          mkdir -p /sources/logs /sources/dags /sources/plugins
-          chown -R "${AIRFLOW_UID}:1000" /sources/{logs,dags,plugins}
           chown -R "${AIRFLOW_UID}:1000" /opt/spark/events
           chown -R "${AIRFLOW_UID}:1000" /opt/airflow/{logs,dags,plugins}
+          chown -R "${AIRFLOW_UID}:1000" /datalake
+          umask 002
           exec /entrypoint airflow version
       environment:
         <<: *airflow-common-env
@@ -245,7 +247,6 @@ services:
       user: "0:0"
       volumes:
         - spark-events:/opt/spark/events
-        - ${AIRFLOW_PROJ_DIR:-.}:/sources
 
   airflow-cli:
       <<: *airflow-common

@@ -1,5 +1,5 @@
 from airflow import DAG
-from airflow.providers.standard.operators.bash import BashOperator
+from airflow.providers.apache.spark.operators.spark_submit import SparkSubmitOperator
 from datetime import datetime, timedelta
 
 default_args = {
@@ -14,21 +14,30 @@ with DAG(
     schedule=None,
     default_args=default_args,
     catchup=False
-    ) as dag:
+) as dag:
 
-    bronze_process = BashOperator(
+    bronze_process = SparkSubmitOperator(
         task_id='bronze_process',
-        bash_command='docker exec spark python3 /app/scripts/process_bronze.py'
-        )
-    
-    silver_process = BashOperator(
+        application='/app/scripts/process_bronze.py',
+        conn_id='spark_standalone_client',
+        verbose=True,
+        dag=dag
+    )
+
+    silver_process = SparkSubmitOperator(
         task_id='silver_process',
-        bash_command='docker exec spark python3 /app/scripts/process_silver.py'
-        )
-    
-    gold_process = BashOperator(
+        application='/app/scripts/process_silver.py',
+        conn_id='spark_standalone_client',
+        verbose=True,
+        dag=dag
+    )
+
+    gold_process = SparkSubmitOperator(
         task_id='gold_process',
-        bash_command='docker exec spark python3 /app/scripts/process_gold.py'
-        )
+        application='/app/scripts/process_gold.py',
+        conn_id='spark_standalone_client',
+        verbose=True,
+        dag=dag
+    )
 
     bronze_process >> silver_process >> gold_process
