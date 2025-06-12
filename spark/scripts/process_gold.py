@@ -54,8 +54,8 @@ def main():
     """
     Main function to orchestrate the reading, processing, and writing of data.
     """
-    read_path = "/datalake/silver/breweries"
-    write_path = "/datalake/gold/aggregated_breweries"
+    read_path = "s3a://datalake/silver/breweries"
+    write_path = "s3a://datalake/gold/aggregated_breweries"
 
     silver_df = get_silver_data(read_path)
     gold_df = process_gold(silver_df)

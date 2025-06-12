@@ -18,6 +18,10 @@ ENV SPARK_MASTER_PORT="7077"
 # Name of master container and also counts as hostname
 ENV SPARK_MASTER_HOST="spark-master"
 
+# Jars for aws s3 support
+RUN wget -P ${SPARK_HOME}/jars/ https://repo1.maven.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar;
+RUN wget -P ${SPARK_HOME}/jars/ https://repo1.maven.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar;
+
 COPY spark-defaults.conf "${SPARK_HOME}/conf"
 
 COPY requirements.txt .
