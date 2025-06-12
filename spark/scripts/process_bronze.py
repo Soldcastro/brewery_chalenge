@@ -41,7 +41,7 @@ def main():
     and write it to a JSON file in the bronze layer.
     '''
     url = 'https://api.openbrewerydb.org/v1/breweries'
-    path = '/datalake/bronze/bronze_breweries.json'
+    path = 's3a://datalake/bronze/bronze_breweries.json'
     breweries = fetch_breweries(url)
     write_breweries_to_file(breweries, path)
     print("Data fetched and written to bronze layer successfully.")

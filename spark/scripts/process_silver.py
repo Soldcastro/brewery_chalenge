@@ -61,8 +61,8 @@ def main():
     Main function to process the silver layer of the brewery data.
     It reads the bronze data, transforms it to silver format, and writes it to the specified path.
     """
-    read_path = "/datalake/bronze/bronze_breweries.json"
-    write_path = "/datalake/silver/breweries"
+    read_path = "s3a://datalake/bronze/bronze_breweries.json"
+    write_path = "s3a://datalake/silver/breweries"
 
     # Read bronze data
     bronze_df = get_bronze_data(spark, read_path)
