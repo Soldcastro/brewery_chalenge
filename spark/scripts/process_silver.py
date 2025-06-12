@@ -4,6 +4,7 @@
 # Import necessary libraries
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import col
+import os
 
 spark = SparkSession.builder \
     .appName("Process Silver") \
@@ -60,11 +61,16 @@ def main():
     Main function to process the silver layer of the brewery data.
     It reads the bronze data, transforms it to silver format, and writes it to the specified path.
     """
-    read_path = "/datalake/bronze/raw_breweries.json"
+    read_path = "/datalake/bronze/bronze_breweries.json"
     write_path = "/datalake/silver/breweries"
 
     # Read bronze data
     bronze_df = get_bronze_data(spark, read_path)
+     
+    # Delete the existing silver data if it exists
+    if os.path.exists(write_path):
+        os.system(f"rm -rf {write_path}")
+        
 
     # Transform to silver format
     silver_df = transform_bronze_to_silver(bronze_df)

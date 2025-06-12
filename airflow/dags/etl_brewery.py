@@ -20,6 +20,7 @@ with DAG(
         task_id='bronze_process',
         application='/app/scripts/process_bronze.py',
         conn_id='spark_standalone_client',
+        verbose=True,
         dag=dag
     )
 
@@ -27,6 +28,7 @@ with DAG(
         task_id='silver_process',
         application='/app/scripts/process_silver.py',
         conn_id='spark_standalone_client',
+        verbose=True,
         dag=dag
     )
 
@@ -34,6 +36,7 @@ with DAG(
         task_id='gold_process',
         application='/app/scripts/process_gold.py',
         conn_id='spark_standalone_client',
+        verbose=True,
         dag=dag
     )
 
