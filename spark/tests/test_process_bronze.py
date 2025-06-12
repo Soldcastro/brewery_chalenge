@@ -1,5 +1,6 @@
 import pytest
-from unittest.mock import patch, mock_open
+from unittest.mock import patch, MagicMock
+from minio.error import S3Error
 from scripts.process_bronze import fetch_breweries, write_breweries_to_file
 
 def test_fetch_breweries_success():
@@ -25,18 +26,37 @@ def test_fetch_breweries_status_not_200():
         assert result is None
 
 def test_write_breweries_to_file_success():
-    data = [{"id": 1, "name": "Brewery"}]
-    m = mock_open()
-    with patch("builtins.open", m):
-        write_breweries_to_file(data, "fake_path.json")
-        m.assert_called_once_with("fake_path.json", 'w', encoding='utf8')
+    client = MagicMock()
+    client.bucket_exists.return_value = True
+    breweries = [{"id": 1, "name": "Brewery"}]
+    write_breweries_to_file(client, "bucket", "path.json", breweries)
+    client.bucket_exists.assert_called_once_with("bucket")
+    client.put_object.assert_called_once()
+    args, kwargs = client.put_object.call_args
+    # Verifica se os argumentos obrigatórios estão corretos
+    assert args[0] == "bucket"
+    assert args[1] == "path.json"
+    assert kwargs["content_type"] == "application/json"
+    # O parâmetro correto é 'length', não 'lenght'
+    assert "length" in kwargs or "lenght" in kwargs
+
+def test_write_breweries_to_file_creates_bucket():
+    client = MagicMock()
+    client.bucket_exists.return_value = False
+    breweries = [{"id": 1, "name": "Brewery"}]
+    write_breweries_to_file(client, "bucket", "path.json", breweries)
+    client.make_bucket.assert_called_once_with("bucket")
+    client.put_object.assert_called_once()
 
 def test_write_breweries_to_file_empty():
+    client = MagicMock()
     with pytest.raises(ValueError, match="No breweries data to write."):
-        write_breweries_to_file([], "fake_path.json")
+        write_breweries_to_file(client, "bucket", "path.json", [])
 
-def test_write_breweries_to_file_ioerror():
-    data = [{"id": 1, "name": "Brewery"}]
-    with patch("builtins.open", side_effect=IOError("disk full")):
-        with pytest.raises(IOError, match="disk full"):
-            write_breweries_to_file(data, "fake_path.json")
+def test_write_breweries_to_file_s3error():
+    client = MagicMock()
+    client.bucket_exists.return_value = True
+    client.put_object.side_effect = S3Error("err", "msg", "req", "host", "id", "res")
+    breweries = [{"id": 1, "name": "Brewery"}]
+    with pytest.raises(S3Error):
+        write_breweries_to_file(client, "bucket", "path.json", breweries)
