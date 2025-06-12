@@ -3,6 +3,9 @@ Brewery Challenge - Process Bronze Layer
 """
 import json
 import requests
+from minio import Minio
+from minio.error import S3Error
+from io import BytesIO
 
 # Define the functions to fetch breweries data from the API and write it to a file
 def fetch_breweries(url):
@@ -20,7 +23,24 @@ def fetch_breweries(url):
     if response.status_code == 200:
         return response.json()
 
-def write_breweries_to_file(breweries, path):
+def create_minio_client():
+    """
+    Creates a MinIO client to interact with the MinIO server.
+    :return: MinIO client instance
+    """
+    try:
+        client = Minio(
+            "minio:9000",
+            access_key="testuser",
+            secret_key="password",
+            secure=False
+        )
+        return client
+    except S3Error as e:
+        print(f"Failed to create MinIO client: {e}")
+        raise
+
+def write_breweries_to_file(client, bucket, path, breweries):
     """
     Writes the breweries data to a JSON file in the specified path.
     :param breweries: List of breweries data to write
@@ -29,9 +49,20 @@ def write_breweries_to_file(breweries, path):
     if not breweries:
         raise ValueError("No breweries data to write.")
     try:
-        with open(path, 'w', encoding='utf8') as f:
-            json.dump(breweries, f, indent=4)
-    except IOError as e:
+        # Ensure the bucket exists
+        if not client.bucket_exists(bucket):
+            client.make_bucket(bucket)
+        
+        # Convert breweries data to JSON and write to file
+        data = BytesIO(json.dumps(breweries).encode('utf-8'))
+        client.put_object(
+            bucket,
+            path, 
+            data = data,
+            length = data.getbuffer().nbytes,
+            content_type='application/json'
+            )
+    except S3Error as e:
         print(f"Failed to write data to file: {e}")
         raise
 
@@ -41,9 +72,11 @@ def main():
     and write it to a JSON file in the bronze layer.
     '''
     url = 'https://api.openbrewerydb.org/v1/breweries'
-    path = 's3a://datalake/bronze/bronze_breweries.json'
+    bucket = 'datalake'
+    path = 'bronze/bronze_breweries.json'
     breweries = fetch_breweries(url)
-    write_breweries_to_file(breweries, path)
+    minio_client = create_minio_client()
+    write_breweries_to_file(minio_client, bucket, path, breweries)
     print("Data fetched and written to bronze layer successfully.")
 
 if __name__ == "__main__":
