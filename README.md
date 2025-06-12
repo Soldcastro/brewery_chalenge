@@ -62,4 +62,6 @@ O **brewery_chalenge** demonstra a aplicação de boas práticas de engenharia d
     $ docker-compose up -d
 
 ## Acesse Airflow UI http://localhost:8090/ com login e senha airflow
+## SparkUI disponível em http://localhost:8080/
+## Spark History Server disponível em http://localhost:18080/
 ## Ative a dag etl_brewery e execute.
